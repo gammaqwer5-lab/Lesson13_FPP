@@ -39,6 +39,7 @@ internal class Program
         Console.WriteLine();
         Console.WriteLine("1. Последовательная обработка");
         Console.WriteLine("2. Параллельная обработка");
+        Console.WriteLine("3. Параллельная обработка с ошибочным заданием");
 
         Console.Write("Выберите режим: ");
 
@@ -74,6 +75,32 @@ internal class Program
 
                 break;
 
+            case "3":
+                {
+                    var errorTasks = new List<FileTask>
+                {
+                    new(1, Path.Combine(dataDirectory, "file1.txt")),
+                    new(2, Path.Combine(dataDirectory, "file2.txt")),
+                    new(3, Path.Combine(dataDirectory, "missing.txt")),
+                    new(4, Path.Combine(dataDirectory, "file3.txt")),
+                    new(5, Path.Combine(dataDirectory, "file4.txt"))
+                };
+
+                    Console.Write("Количество обработчиков: ");
+                    if (!int.TryParse(
+                            Console.ReadLine(),
+                            out int errorWorkerCount) ||
+                        errorWorkerCount < 1)
+                    {
+                        Console.WriteLine("Некорректное значение.");
+                        return;
+                    }
+
+                    report = await PipelineProcessor.ProcessAsync(
+                        errorTasks,
+                        errorWorkerCount);
+                    break;
+                }
             default:
 
                 Console.WriteLine("Неизвестный режим.");
@@ -81,10 +108,31 @@ internal class Program
         }
 
         PrintReport(report);
+        PrintWorkerStatistic(report);
 
         await SaveReportAsync(report);
     }
+    private static void PrintWorkerStatistic(AnalysisReport report)
+    {
+        Console.WriteLine("\nWorkers: ");
 
+        var statistics = report.Results
+            .GroupBy(x => x.WorkerId)
+            .Select(group => new
+            {
+                WorkerId = group.Key,
+                Count = group.Count()
+            })
+            .ToDictionary(x => x.WorkerId, x => x.Count);
+
+        for (int id = 1; id <= report.WorkerCount; id++)
+        {
+            statistics.TryGetValue(id, out int count);
+            Console.WriteLine($"Worker {id}: {count} заданий");
+        }
+
+        Console.WriteLine($"Всего обработано: {report.SuccessfulFiles}");
+    }
     private static void PrintReport(AnalysisReport report)
     {
         Console.WriteLine();
