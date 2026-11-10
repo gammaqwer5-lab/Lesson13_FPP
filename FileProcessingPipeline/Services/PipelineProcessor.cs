@@ -28,7 +28,7 @@ public static class PipelineProcessor
         var results = new ConcurrentBag<FileAnalysisResult>();
 
         var errors = new ConcurrentBag<FileProcessingError>();
-
+         
         // TODO:
         // Добавить механизм передачи заданий
         // между производителем и обработчиками.
